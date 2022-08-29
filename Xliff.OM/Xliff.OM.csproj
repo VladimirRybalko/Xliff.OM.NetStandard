@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Description>Library for generating, serializing and de-serializing XLIFF 2.0 documents.</Description>
+    <Product>Xliff.OM.NetStandard</Product>
+    <AssemblyVersion>2.0.0</AssemblyVersion>
+    <FileVersion>2.0.0</FileVersion>
+    <Version>2.0.0</Version>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>C:\_repos\Xliff.OM.NetStandard\Xliff.OM.NetStandard.snk</AssemblyOriginatorKeyFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>Xliff.OM.NetStandard</PackageId>
+    <Title>Xliff.OM.NetStandard</Title>
+    <Authors />
+    <PackageProjectUrl>https://github.com/VladimirRybalko/Xliff.OM.NetStandard</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/VladimirRybalko/Xliff.OM.NetStandard</RepositoryUrl>
+    <PackageTags>XLIFF parsing localization xliff20</PackageTags>
+    <PackageReleaseNotes>- Strong signed assemblies
+- Fixed an issue with Note-&gt;priority tag and its validation
+- Custom namespaces are allowed for all known elements</PackageReleaseNotes>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <BaseOutputPath>$(SolutionDir)\bin\</BaseOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+  
+</Project>
