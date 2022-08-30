@@ -357,12 +357,22 @@
             using (IO.FileStream stream = new IO.FileStream(file, IO.FileMode.Create, IO.FileAccess.Write))
             {
                 XliffWriter writer;
-
-                writer = new XliffWriter();
+                var shouldIncludeAllValidationExceptions = true; // change it to 'false' to get only the first occured validation exception
+                var settings = new XliffWriterSettings();
+                settings.Validators.Clear();
+                settings.Validators.Add(new StandardValidator(stopOnFirstException: !shouldIncludeAllValidationExceptions));
+                writer = new XliffWriter(settings);
 
                 try
                 {
                     writer.Serialize(stream, document);
+                }
+                catch(AggregatedValidationException e)
+                {
+                    Console.WriteLine("ValidationException Details:");
+                    Console.WriteLine(e.Message);
+                    foreach (var innerEx in e.InnerExceptions)
+                        Console.WriteLine("'{0}': '{1}'", innerEx.Message, innerEx.SelectorPath);
                 }
                 catch (ValidationException e)
                 {
@@ -371,9 +381,7 @@
                     if (e.Data != null)
                     {
                         foreach (object key in e.Data.Keys)
-                        {
                             Console.WriteLine("  '{0}': '{1}'", key, e.Data[key]);
-                        }
                     }
                 }
             }
