@@ -515,44 +515,7 @@
         /// <param name="state">The state to validate.</param>
         /// <remarks>This method throws a <see cref="FormatException"/> if the state is malformed.</remarks>
         private void ValidateElementState(ElementState state)
-        {
-            if (state.Consumer is NoteContainer)
-            {
-                NoteContainer container;
-
-                // Notes must contain at least one Note.
-                container = (NoteContainer)state.Consumer;
-                if (!container.HasNotes)
-                {
-                    string message;
-                    XliffElement element;
-
-                    element = container as XliffElement;
-                    message = string.Format(
-                                            Properties.Resources.XliffReader_INoteContainerMissingNote_Format,
-                                            (element == null) ? string.Empty : element.SelectableAncestor.SelectorPath);
-                    throw new FormatException(message);
-                }
-            }
-            else if (state.Consumer is OriginalData)
-            {
-                OriginalData container;
-
-                // OriginalData must contain at least one Data.
-                container = (OriginalData)state.Consumer;
-                if (!container.HasData)
-                {
-                    string message;
-                    XliffElement element;
-
-                    element = container as XliffElement;
-                    message = string.Format(
-                                            Properties.Resources.XliffReader_OriginalDataMissingData,
-                                            (element == null) ? string.Empty : element.SelectableAncestor.SelectorPath);
-                    throw new FormatException(message);
-                }
-            }
-
+        {            
             // Verify all properties that are required by others are specified.
             foreach (IAttributeDataProvider attribute in state.Consumer.GetXliffAttributes())
             {

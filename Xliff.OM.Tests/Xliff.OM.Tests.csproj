@@ -574,9 +574,6 @@
     <None Include="Oasis_TestFiles\core\invalid\bad_NonIsolatedEcWithStartRef.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_NotesWithoutNote.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="Oasis_TestFiles\core\invalid\bad_NoTrgLang.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -590,9 +587,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Oasis_TestFiles\core\invalid\bad_OrderNotUnique2.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_OriginalDataWithoutData.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Oasis_TestFiles\core\invalid\bad_PartIdNotUnique.xlf">

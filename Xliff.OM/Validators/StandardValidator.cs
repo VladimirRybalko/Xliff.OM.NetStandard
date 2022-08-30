@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Text;
     using Localization.Xliff.OM.Core;
@@ -51,20 +52,38 @@
         private readonly Dictionary<string, SpanningCodeEnd> spanningCodeStartToFindTarget;
 
         /// <summary>
+        /// List of occured validation exceptions
+        /// </summary>
+        private readonly List<ValidationException> exceptions;
+
+        /// <summary>
         /// The document to validate.
         /// </summary>
         private XliffDocument document;
+
+        private readonly bool stopOnFirstException;
+        
         #endregion Member Variables
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StandardValidator"/> class.
         /// </summary>
-        public StandardValidator()
+        public StandardValidator(bool stopOnFirstException = true)
         {
             this.markedSpanStartToFindSource = new Dictionary<string, MarkedSpanEnd>();
             this.markedSpanStartToFindTarget = new Dictionary<string, MarkedSpanEnd>();
             this.spanningCodeStartToFindSource = new Dictionary<string, SpanningCodeEnd>();
             this.spanningCodeStartToFindTarget = new Dictionary<string, SpanningCodeEnd>();
+            this.exceptions = new List<ValidationException>();
+            this.stopOnFirstException = stopOnFirstException;
+        }
+
+        private void ProcessException(ValidationException exception)
+        {
+            if (stopOnFirstException)
+                throw exception;
+            else
+                this.exceptions.Add(exception);
         }
 
         #region IXliffValidator Implementation
@@ -82,6 +101,9 @@
             try
             {
                 this.ValidateImpl();
+                if (this.exceptions.Count > 0)
+                    throw new AggregatedValidationException(this.exceptions);
+
             }
             catch (ValidationException)
             {
@@ -89,11 +111,15 @@
             }
             catch (Exception e)
             {
-                throw new ValidationException(
-                                              ValidationError.UnhandledException,
-                                              Properties.Resources.StandardValidator_UnhandledException,
-                                              e);
-            }
+                var ex = new ValidationException(ValidationError.UnhandledException, Properties.Resources.StandardValidator_UnhandledException, e);
+                if (this.exceptions.Count == 0)
+                    throw new ValidationException(ValidationError.UnhandledException, Properties.Resources.StandardValidator_UnhandledException, e);
+                else
+                {
+                    this.exceptions.Add(ex);
+                    throw new AggregatedValidationException(this.exceptions);
+                }                    
+            }            
         }
         #endregion IXliffValidator Implementation
 
@@ -187,7 +213,7 @@
         /// <param name="contents">The list of elements to scan for sequences.</param>
         /// <returns>A dictionary whose key is the Id of the first element in the sequence, and the value is the list
         /// of elements in the sequence.</returns>
-        private static Dictionary<string, List<CodeBase>> GetAndValidateEditingHintsSequences(
+        private Dictionary<string, List<CodeBase>> GetAndValidateEditingHintsSequences(
                                                                 List<ResourceStringContent> contents)
         {
             Dictionary<string, List<CodeBase>> result;
@@ -209,10 +235,10 @@
                     // CanCopy and CanDelete MUST be set to false if CanReorder is set to No or FirstNo.
                     if ((codeBase.CanReorder != CanReorderValue.Yes) && (codeBase.CanCopy || codeBase.CanDelete))
                     {
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                             ValidationError.CodeBaseMismatchedCanReorderCopyDelete,
                                             Properties.Resources.StandardValidator_CanCopyOrDeleteInvalidForCanReorder,
-                                            codeBase.SelectorPath);
+                                            codeBase.SelectorPath));
                     }
 
                     switch (codeBase.CanReorder)
@@ -234,10 +260,10 @@
                             // Add the current tag to the current sequence. Fail if there is no current sequence.
                             if (currentSequence.Count == 0)
                             {
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                               ValidationError.CodeBaseSequenceStartsWithCanReorderNo,
                                                               Properties.Resources.StandardValidator_SequenceCannotBeginWithNo,
-                                                              codeBase.SelectorPath);
+                                                              codeBase.SelectorPath));
                             }
 
                             currentSequence.Add(codeBase);
@@ -358,7 +384,7 @@
         /// <param name="error">A number that identifies the error.</param>
         /// <param name="selectorPath">The selector path where the error occurs.</param>
         /// <remarks>This method always throws a <see cref="ValidationException"/>.</remarks>
-        private static void ThrowSpanningCodeStartEndPropertyMismatchException(
+        private void ThrowSpanningCodeStartEndPropertyMismatchException(
                                                                                string property,
                                                                                int error,
                                                                                string selectorPath)
@@ -370,7 +396,7 @@
                                     property,
                                     typeof(SpanningCodeStart).Name,
                                     typeof(SpanningCodeEnd).Name);
-            throw new ValidationException(error, message, selectorPath);
+            ProcessException(new ValidationException(error, message, selectorPath));
         }
         #endregion Static Methods
 
@@ -493,10 +519,10 @@
                     string message;
 
                     message = string.Format(Properties.Resources.CodePoint_InvalidCode, point.Code);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.CodePointInvalidCode,
                                                   message,
-                                                  point.SelectableAncestor.SelectorPath);
+                                                  point.SelectableAncestor.SelectorPath));
                 }
             }
 
@@ -537,10 +563,10 @@
                 // Id must not be null.
                 if (string.IsNullOrWhiteSpace(span.Id))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.MarkedSpanIdNull,
                                                   Properties.Resources.StandardValidator_IdNotSpecified,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
                 else
                 {
@@ -559,19 +585,19 @@
                     (span.Type != MarkedSpanTypes.Term) &&
                     !this.TryValidatePrefixValueFormat(span.Type, "Type", span.SelectorPath, false))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.MarkedSpanInvalidType,
                                                   Properties.Resources.StandardValidator_InvalidMarkedSpanType,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
 
                 // If type is set to comment then the value must be set or the reference must be set, but not both.
                 if ((span.Type == MarkedSpanTypes.Comment) && ((span.Value == null) == (span.Reference == null)))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.MarkedSpanReferenceAndValueSpecified,
                                                   Properties.Resources.StandardValidator_MarkedSpanReferenceAndValueSpecified,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
 
                 if (span.Reference != null)
@@ -615,10 +641,10 @@
                                                     Properties.Resources.StandardValidator_InvalidMarkedSpanReference_Format,
                                                     span.Reference,
                                                     "Note");
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                       ValidationError.MarkedSpanInvalidReference,
                                                       message,
-                                                      span.SelectorPath);
+                                                      span.SelectorPath));
                         }
                     }
                     else if (span.Reference.StartsWith(Utilities.Constants.SelectorPathIndictator) &&
@@ -641,10 +667,10 @@
                                                     Properties.Resources.StandardValidator_InvalidMarkedSpanReference_Format,
                                                     span.Reference,
                                                     "element");
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                       ValidationError.MarkedSpanInvalidReference,
                                                       message,
-                                                      span.SelectorPath);
+                                                      span.SelectorPath));
                         }
                         else if (fragment != null)
                         {
@@ -659,10 +685,10 @@
                                 message = string.Format(
                                                 Properties.Resources.StandardValidator_InvalidMarkedSpanReferenceSelectorPath_Format,
                                                 span.Reference);
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                             ValidationError.MarkedSpanInvalidReferenceSelectorPath,
                                                             message,
-                                                            span.SelectorPath);
+                                                            span.SelectorPath));
                             }
                         }
                     }
@@ -706,10 +732,10 @@
                     message = string.Format(
                                             Properties.Resources.StandardValidator_PropertyNotSpecified_Format,
                                             "StartReference");
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.MarkedSpanEndStartRefNull,
                                                   message,
-                                                  span.SelectableAncestor.SelectorPath);
+                                                  span.SelectableAncestor.SelectorPath));
                 }
 
                 // StartReference refers to matching  MarkedSpanEndStart.
@@ -725,10 +751,10 @@
                                                 Properties.Resources.StandardValidator_DuplicateReference_Format,
                                                 "MarkedSpanStart",
                                                 span.StartReference);
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.MarkedSpanEndDuplicateStartRef,
                                                       message,
-                                                      span.SelectableAncestor.SelectorPath);
+                                                      span.SelectableAncestor.SelectorPath));
                     }
 
                     markedSpanStartToFind.Add(span.StartReference, span);
@@ -755,10 +781,10 @@
             {
                 if (string.IsNullOrWhiteSpace(span.Id))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.MarkedSpanStartIdNull,
                                                   Properties.Resources.StandardValidator_IdNotSpecified,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
                 else
                 {
@@ -777,19 +803,19 @@
                     (span.Type != MarkedSpanTypes.Term) &&
                     !this.TryValidatePrefixValueFormat(span.Type, "Type", span.SelectorPath, false))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.MarkedSpanStartInvalidType,
                                                   Properties.Resources.StandardValidator_InvalidMarkedSpanType,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
 
                 // If type is set to comment then the value must be set or the reference must be set, but not both.
                 if ((span.Type == MarkedSpanTypes.Comment) && ((span.Value == null) == (span.Reference == null)))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.MarkedSpanStartReferenceAndValueSpecified,
                                                   Properties.Resources.StandardValidator_MarkedSpanReferenceAndValueSpecified,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
 
                 // The reference must refer to a valid note.
@@ -834,10 +860,10 @@
                                                     Properties.Resources.StandardValidator_InvalidMarkedSpanReference_Format,
                                                     span.Reference,
                                                     "Note");
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                       ValidationError.MarkedSpanStartInvalidReference,
                                                       message,
-                                                      span.SelectorPath);
+                                                      span.SelectorPath));
                         }
                     }
                     else if (span.Reference.StartsWith(Utilities.Constants.SelectorPathIndictator) &&
@@ -860,10 +886,10 @@
                                                     Properties.Resources.StandardValidator_InvalidMarkedSpanReference_Format,
                                                     span.Reference,
                                                     "element");
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                       ValidationError.MarkedSpanStartInvalidReference,
                                                       message,
-                                                      span.SelectorPath);
+                                                      span.SelectorPath));
                         }
                         else if (fragment != null)
                         {
@@ -878,10 +904,10 @@
                                 message = string.Format(
                                                 Properties.Resources.StandardValidator_InvalidMarkedSpanReferenceSelectorPath_Format,
                                                 span.Reference);
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                             ValidationError.MarkedSpanStartInvalidReferenceSelectorPath,
                                                             message,
-                                                            span.SelectorPath);
+                                                            span.SelectorPath));
                             }
                         }
                     }
@@ -985,7 +1011,7 @@
 
             if (throwOnError && (message != null))
             {
-                throw new ValidationException(errorNumber, message, selectorPath);
+                ProcessException(new ValidationException(errorNumber, message, selectorPath));
             }
 
             return message == null;
@@ -1057,7 +1083,7 @@
 
                 if (message != null)
                 {
-                    throw new ValidationException(errorNumber, message, span.SelectorPath);
+                    ProcessException(new ValidationException(errorNumber, message, span.SelectorPath));
                 }
 
                 // SubFlowsEnd and SubFlowsStart refer to units within the file.
@@ -1083,10 +1109,10 @@
                                                         Properties.Resources.StandardValidator_SubflowNotFound_Format,
                                                         "SubFlowsEnd",
                                                         span.SubFlowsEnd);
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                               ValidationError.SpanningCodeInvalidSubFlowsEnd,
                                                               message,
-                                                              span.SelectorPath);
+                                                              span.SelectorPath));
                             }
                         }
                     }
@@ -1101,10 +1127,10 @@
                                                         Properties.Resources.StandardValidator_SubflowNotFound_Format,
                                                         "SubFlowsStart",
                                                         span.SubFlowsStart);
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                               ValidationError.SpanningCodeInvalidSubFlowsStart,
                                                               message,
-                                                              span.SelectorPath);
+                                                              span.SelectorPath));
                             }
                         }
                     }
@@ -1167,10 +1193,10 @@
                                             Properties.Resources.StandardValidator_InvalidDataReference_Format,
                                             "DataReference",
                                             span.DataReference);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.SpanningCodeEndInvalidDataRef,
                                                   message,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
 
                 // SubFlows refer to units within the file.
@@ -1196,10 +1222,10 @@
                                                     Properties.Resources.StandardValidator_SubflowNotFound_Format,
                                                     "SubFlows",
                                                     span.SubFlows);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.SpanningCodeEndSubFlowsInvalid,
                                                           message,
-                                                          span.SelectorPath);
+                                                          span.SelectorPath));
                         }
                     }
                 }
@@ -1217,45 +1243,45 @@
                                                 Properties.Resources.StandardValidator_DuplicateReference_Format,
                                                 "SpanningCodeStart",
                                                 span.StartReference);
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.SpanningCodeEndStartRefInvalid,
                                                       message,
-                                                      span.SelectorPath);
+                                                      span.SelectorPath));
                     }
 
                     if (span.Isolated)
                     {
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.SpanningCodeEndIsolatedWithStartRef,
                                                       Properties.Resources.StandardValidator_SpanningCodeEndIslatedAndStartRef,
-                                                      span.SelectorPath);
+                                                      span.SelectorPath));
                     }
 
                     if (!string.IsNullOrWhiteSpace(span.Id))
                     {
                         // Id cannot be used because StartReference is specified.
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.SpanningCodeEndStartRefAndIdSpecified,
                                                       Properties.Resources.StandardValidator_SpanningCodeEndStartRefAndId,
-                                                      span.SelectorPath);
+                                                      span.SelectorPath));
                     }
 
                     spanningCodeStartToFind.Add(span.StartReference, span);
                 }
                 else if (!span.Isolated)
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.SpanningCodeEndNotIsolatedOrStartRef,
                                                   Properties.Resources.StandardValidator_SpanningCodeEndNotIslatedOrStartRef,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
                 else if (string.IsNullOrWhiteSpace(span.Id))
                 {
                     // Id must not be null.
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.SpanningCodeEndIdNull,
                                                   Properties.Resources.StandardValidator_IdNotSpecified,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
             }
 
@@ -1304,10 +1330,10 @@
                                             Properties.Resources.StandardValidator_InvalidDataReference_Format,
                                             "DataReference",
                                             span.DataReference);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.SpanningCodeStartDataRefInvalid,
                                                   message,
-                                                  span.SelectorPath);
+                                                  span.SelectorPath));
                 }
 
                 // SubFlows refer to units within the file.
@@ -1333,10 +1359,10 @@
                                                     Properties.Resources.StandardValidator_SubflowNotFound_Format,
                                                     "SubFlows",
                                                     span.SubFlows);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.SpanningCodeStartSubflowsInvalid,
                                                           message,
-                                                          span.SelectorPath);
+                                                          span.SelectorPath));
                         }
                     }
                 }
@@ -1384,10 +1410,10 @@
                                             Properties.Resources.StandardValidator_InvalidDataReference_Format,
                                             "DataReference",
                                             code.DataReference);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.StandaloneCodeDataRefInvalid,
                                                   message,
-                                                  code.SelectorPath);
+                                                  code.SelectorPath));
                 }
 
                 if (code.SubFlows != null)
@@ -1412,10 +1438,10 @@
                                                     Properties.Resources.StandardValidator_SubflowNotFound_Format,
                                                     "SubFlows",
                                                     code.SubFlows);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.StandaloneCodeSubflowsInvalid,
                                                           message,
-                                                          code.SelectorPath);
+                                                          code.SelectorPath));
                         }
                     }
                 }
@@ -1449,7 +1475,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_LanguageInvalid_Format, property);
-                throw new ValidationException(errorNumber, message, selectorPath);
+                ProcessException(new ValidationException(errorNumber, message, selectorPath));
             }
         }
 
@@ -1469,7 +1495,7 @@
                     string message;
 
                     message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Revisions");
-                    throw new ValidationException(ValidationError.ChangeTrackMissingRevisions, message, selectorPath);
+                    ProcessException(new ValidationException(ValidationError.ChangeTrackMissingRevisions, message, selectorPath));
                 }
 
                 foreach (RevisionsContainer container in change.Revisions)
@@ -1492,7 +1518,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Items");
-                throw new ValidationException(ValidationError.RevisionMissingItems, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.RevisionMissingItems, message, selectorPath));
             }
 
             this.ValidateNMTOKEN(revision.Version, true, "Version", ValidationError.RevisionVersionNotNMToken, selectorPath);
@@ -1501,10 +1527,10 @@
             {
                 if (string.IsNullOrWhiteSpace(item.Property))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.ItemPropertyNull,
                                                   Properties.Resources.StandardValidator_ItemPropertyNull,
-                                                  selectorPath);
+                                                  selectorPath));
                 }
             }
         }
@@ -1522,7 +1548,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Revisions");
-                throw new ValidationException(ValidationError.RevisionsContainerMissingRevisions, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.RevisionsContainerMissingRevisions, message, selectorPath));
             }
 
             this.ValidateNMTOKEN(
@@ -1576,10 +1602,10 @@
             {
                 if (string.IsNullOrWhiteSpace(codeBase.Id))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.CodeBaseIdNull,
                                                   Properties.Resources.StandardValidator_IdNotSpecified,
-                                                  codeBase.SelectorPath);
+                                                  codeBase.SelectorPath));
                 }
                 else
                 {
@@ -1620,10 +1646,10 @@
                         message = string.Format(
                                                 Properties.Resources.StandardValidator_CodeBaseWithCopyOfAndDataRef_Format,
                                                 codeBase.GetType().Name);
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                         ValidationError.CodeBaseWithCopyOfAndDataRef,
                                                         message,
-                                                        codeBase.SelectorPath);
+                                                        codeBase.SelectorPath));
                     }
                 }
 
@@ -1636,10 +1662,10 @@
                     message = string.Format(
                                             Properties.Resources.StandardValidator_CopyOfNotFound_Format,
                                             codeBase.GetType().Name);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.CodeBaseInvalidCopyOf,
                                                   message,
-                                                  codeBase.SelectorPath);
+                                                  codeBase.SelectorPath));
                 }
                 else if ((element == null) || (element.GetType() != codeBase.GetType()))
                 {
@@ -1649,10 +1675,10 @@
                                             Properties.Resources.StandardValidator_InvalidCopyOfElement_Format,
                                             codeBase.GetType().Name,
                                             codeBase.CopyOf);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.CodeBaseCopyOfTypeMismatch,
                                                   message,
-                                                  codeBase.SelectorPath);
+                                                  codeBase.SelectorPath));
                 }
             }
 
@@ -1663,10 +1689,10 @@
 
                 if (!codeBase.Type.HasValue)
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.CodeBaseTypeNotSpecified,
                                                   Properties.Resources.StandardValidator_CodeBaseTypeNotSpecified,
-                                                  codeBase.SelectorPath);
+                                                  codeBase.SelectorPath));
                 }
 
                 this.TryValidatePrefixValueFormat(
@@ -1716,7 +1742,7 @@
 
                     if (message != null)
                     {
-                        throw new ValidationException(errorNumber, message, codeBase.SelectorPath);
+                        ProcessException(new ValidationException(errorNumber, message, codeBase.SelectorPath));
                     }
                 }
             }
@@ -1759,7 +1785,7 @@
             if (container.Target != null)
             {
                 // The value of Space must be the same between the source and target.
-                if (container.Source.Space != container.Target.Space)
+                if (container.Source != null && container.Source.Space != container.Target.Space)
                 {
                     string message;
 
@@ -1768,10 +1794,10 @@
                                             "Space",
                                             typeof(Source).Name,
                                             typeof(Target).Name);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.ResourceStringSpaceMismatch,
                                                   message,
-                                                  container.SelectorPath);
+                                                  container.SelectorPath));
                 }
 
                 foreach (KeyValuePair<string, ResourceStringContent> child in targetTagIds)
@@ -1829,10 +1855,10 @@
                                                     targetElement.GetType().Name,
                                                     ((ISelectable)targetElement).Id,
                                                     sourceElement.GetType().Name);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.ContainerResourceTypesWithSameIdMismatch,
                                                           message,
-                                                          container.SelectorPath);
+                                                          container.SelectorPath));
                         }
                     }
                 }
@@ -1853,10 +1879,10 @@
             // Id must not be null.
             if (string.IsNullOrWhiteSpace(data.Id))
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.DataIdNull,
                                               Properties.Resources.StandardValidator_IdNotSpecified,
-                                              data.SelectorPath);
+                                              data.SelectorPath));
             }
             else
             {
@@ -1866,10 +1892,10 @@
             // Space is restricted to Preserve.
             if (data.Space != Preservation.Preserve)
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.DataSpaceNotPreserve,
                                               Properties.Resources.StandardValidator_Space_Not_Preserve,
-                                              data.SelectorPath);
+                                              data.SelectorPath));
             }
 
             // Data can only contain CodePoint elements so just validate the code points.
@@ -1895,6 +1921,8 @@
             Dictionary<string, ResourceStringContent> targetTagsMap;
 
             // Target may be null. Source may not.
+            if (source == null)
+                return;
             Debug.Assert(source != null, "Source is null.");
 
             sourceTags = StandardValidator.GetSelectableResourceStringContentsAsList(source);
@@ -1949,10 +1977,10 @@
                                                     Properties.Resources.StandardValidator_CanCopyFailure_Format,
                                                     codeBase.GetType().Name,
                                                     codeBase.Id);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                     ValidationError.CodeBaseSourceCopyOfTypeMismatchOrNotCanCopy,
                                                     message,
-                                                    selectorPath);
+                                                    selectorPath));
                         }
                     }
                 }
@@ -1994,10 +2022,10 @@
                                                         Properties.Resources.StandardValidator_CanCopyFailure_Format,
                                                         codeBase.GetType().Name,
                                                         codeBase.Id);
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                     ValidationError.CodeBaseTargetCopyOfTypeMismatchOrNotCanCopy,
                                                     message,
-                                                    selectorPath);
+                                                    selectorPath));
                             }
                         }
                     }
@@ -2080,10 +2108,10 @@
                                                         Properties.Resources.StandardValidator_CanDeleteFailure_Format,
                                                         codeBase.GetType().Name,
                                                         codeBase.Id);
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                               ValidationError.CodeBaseTagDeleted,
                                                               message,
-                                                              selectorPath);
+                                                              selectorPath));
                             }
                         }
                     }
@@ -2108,7 +2136,7 @@
             Dictionary<string, List<CodeBase>> sourceSequences;
 
             // Get the editing hints. This also validates the sequence data.
-            sourceSequences = StandardValidator.GetAndValidateEditingHintsSequences(sourceTags);
+            sourceSequences = GetAndValidateEditingHintsSequences(sourceTags);
 
             // Validate that the hierarchy is valid. All tags must reside under the tag with CanReorder=firstNoe
             // or they must be siblings of that tag.
@@ -2139,10 +2167,10 @@
                     {
                         // The tag resides under another CodeBase and either the first one essentially resides under
                         // the source, or it resides under a different CodeBase.
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                             ValidationError.CodeBaseInvalidSourceSequenceHierarchy,
                                             Properties.Resources.StandardValidator_SequenceAncestorNotInHierarchy,
-                                            sequence.Value[i].SelectorPath);
+                                            sequence.Value[i].SelectorPath));
                     }
 
                     ids.Add(sequence.Value[i].Id);
@@ -2156,7 +2184,7 @@
 
                 // Validate canReorder by locating all sequences of length > 1 and verifying the order of the inline
                 // tags in the sequence are the same between the source and target.
-                targetSequences = StandardValidator.GetAndValidateEditingHintsSequences(targetTags);
+                targetSequences = GetAndValidateEditingHintsSequences(targetTags);
 
                 foreach (KeyValuePair<string, List<CodeBase>> sequence in sourceSequences)
                 {
@@ -2204,19 +2232,19 @@
                                          (firstTargetAncestor == null) ||
                                          (targetAncestor.Id != firstTargetAncestor.Id))
                                 {
-                                    throw new ValidationException(
+                                    ProcessException(new ValidationException(
                                                 ValidationError.CodeBaseInvalidTargetSequenceHierarchy,
                                                 Properties.Resources.StandardValidator_SequenceAncestorNotInHierarchy,
-                                                sequence.Value[i].SelectorPath);
+                                                sequence.Value[i].SelectorPath));
                                 }
                             }
                             else if ((targetAncestor == null) || (sourceAncestor.Id != targetAncestor.Id))
                             {
                                 // The tag doesn't have the same hierarchy within the sequence as the source.
-                                throw new ValidationException(
+                                ProcessException(new ValidationException(
                                                 ValidationError.CodeBaseSequenceHierarchyMismatch,
                                                 Properties.Resources.StandardValidator_DifferentSequenceHierarchy,
-                                                sequence.Value[i].SelectorPath);
+                                                sequence.Value[i].SelectorPath));
                             }
 
                             ids.Add(targetSequence[i].Id);
@@ -2241,10 +2269,10 @@
                                                     sequence.Value[0].GetType().Name,
                                                     sequence.Key,
                                                     builder.ToString().TrimEnd(new[] { ',' }));
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.CodeBaseSequenceMismatch,
                                                           message,
-                                                          sequence.Value[0].SelectorPath);
+                                                          sequence.Value[0].SelectorPath));
                         }
                     }
                     else
@@ -2255,10 +2283,10 @@
                                                 Properties.Resources.StandardValidator_SequenceNotFound_Format,
                                                 sequence.Value[0].GetType().Name,
                                                 sequence.Key);
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.CodeBaseSequenceNotFound,
                                                       message,
-                                                      sequence.Value[0].SelectorPath);
+                                                      sequence.Value[0].SelectorPath));
                     }
                 }
             }
@@ -2330,10 +2358,10 @@
                                                     id,
                                                     info.Name,
                                                     info.Namespace);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.ExtensionIdDuplicate,
                                                           message,
-                                                          (selectable == null) ? selectorPath : selectable.SelectorPath);
+                                                          (selectable == null) ? selectorPath : selectable.SelectorPath));
                         }
 
                         childIds.Add(id);
@@ -2385,10 +2413,10 @@
             // Id must not be null.
             if (string.IsNullOrWhiteSpace(file.Id))
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.FileIdNull,
                                               Properties.Resources.StandardValidator_IdNotSpecified,
-                                              file.SelectorPath);
+                                              file.SelectorPath));
             }
             else
             {
@@ -2403,7 +2431,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Containers");
-                throw new ValidationException(ValidationError.FileMissingContainer, message, file.SelectorPath);
+                ProcessException(new ValidationException(ValidationError.FileMissingContainer, message, file.SelectorPath));
             }
 
             // Group.Id must be unique among sibling Groups.
@@ -2441,10 +2469,10 @@
                 (formatStyles.FormatStyle == null))
             {
                 // Constraint: If the attribute subFs is used, the attribute fs MUST be specified as well.
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.FormatStyleSubFormatWithoutFormat,
                                               Properties.Resources.StandardValidator_FormatStyleSubFormatWithoutFormat,
-                                              selectorPath);
+                                              selectorPath));
             }
 
             end = formatStyles as SpanningCodeEnd;
@@ -2452,10 +2480,10 @@
             {
                 // Constraint: The fs MUST only be used with <ec> in cases where the isolated attribute is set to 'yes'.
                 // Constraint: The subFs MUST only be used with <ec> in cases where the isolated attribute is set to 'yes'.
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.FormatStyleWithSpanEndNotIsolated,
                                               Properties.Resources.StandardValidator_FormatStyleWithSpanEndNotIsolated,
-                                              selectorPath);
+                                              selectorPath));
             }
         }
 
@@ -2480,10 +2508,10 @@
                     string message;
 
                     message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "GlossaryEntry");
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.GlossaryMissingEntry,
                                                   message,
-                                                  selectorPath);
+                                                  selectorPath));
                 }
 
                 textElementSelectorIds = new List<string>();
@@ -2538,7 +2566,7 @@
                                             entry.Id,
                                             typeof(GlossaryEntry).Name,
                                             typeof(Glossary).Name);
-                    throw new ValidationException(ValidationError.GlossaryEntryIdDuplicate, message, selectorPath);
+                    ProcessException(new ValidationException(ValidationError.GlossaryEntryIdDuplicate, message, selectorPath));
                 }
 
                 // Add the Id so other elements can check for duplicity.
@@ -2547,10 +2575,10 @@
 
             if ((entry.Translations.Count == 0) && (entry.Definition == null))
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.GlossaryEntryChildrenMissing,
                                               Properties.Resources.StandardValidator_GlossaryEntryMissingChildren,
-                                              selectorPath);
+                                              selectorPath));
             }
 
             // Validate the reference points to a valid source text element.
@@ -2598,10 +2626,10 @@
                                             translation.Id,
                                             typeof(Translation).Name,
                                             typeof(Glossary).Name);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.GlossaryTranslationIdDuplicate,
                                                   message,
-                                                  selectorPath);
+                                                  selectorPath));
                 }
 
                 // Add the Id so other elements can check for duplicity.
@@ -2678,7 +2706,7 @@
                         string message;
 
                         message = string.Format(Properties.Resources.StandardValidator_DuplicateId_Format, element.Id);
-                        throw new ValidationException(ValidationError.ElementIdDuplicate, message, path);
+                        ProcessException(new ValidationException(ValidationError.ElementIdDuplicate, message, path));
                     }
 
                     set.Add(element.Id);
@@ -2697,18 +2725,18 @@
             // Version is required.
             if (string.IsNullOrWhiteSpace(this.document.Version))
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.DocumentVersionNull,
                                               Properties.Resources.StandardValidator_DocumentVersionNotSpecified,
-                                              this.document.SelectorPath);
+                                              this.document.SelectorPath));
             }
 
             if (string.IsNullOrWhiteSpace(this.document.SourceLanguage))
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.DocumentSourceLangNull,
                                               Properties.Resources.StandardValidator_LanguageNotSpecified,
-                                              this.document.SelectorPath);
+                                              this.document.SelectorPath));
             }
 
             // SourceLanguage and TargetLanguage must be BCP-47 compliant.
@@ -2732,10 +2760,10 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Files");
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.DocumentMissingFile,
                                               message,
-                                              this.document.SelectorPath);
+                                              this.document.SelectorPath));
             }
 
             // File Ids must be unique among siblings.
@@ -2759,10 +2787,10 @@
 
             if (hasTarget && string.IsNullOrWhiteSpace(this.document.TargetLanguage))
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.DocumentMissingTargetLang,
                                               Properties.Resources.StandardValidator_DocumentTargetLanguageNotSpecified,
-                                              this.document.SelectorPath);
+                                              this.document.SelectorPath));
             }
 
             this.ValidateExtensions(this.document);
@@ -2787,7 +2815,7 @@
                                         Properties.Resources.StandardValidator_ElementNotFound_Format,
                                         typeof(ResourceStringContent).Name,
                                         iri);
-                throw new ValidationException(ValidationError.IriInvalid, message, reference);
+                ProcessException(new ValidationException(ValidationError.IriInvalid, message, reference));
             }
         }
 
@@ -2806,7 +2834,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_EmptyString_Format, name);
-                throw new ValidationException(errorNumber, message, selectorPath);
+                ProcessException(new ValidationException(errorNumber, message, selectorPath));
             }
         }
 
@@ -2821,10 +2849,10 @@
             {
                 if (!start.Isolated)
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.SpanningCodeStartNotIsolated,
                                                   Properties.Resources.StandardValidator_SpanningCodeStartNotIslated,
-                                                  start.SelectorPath);
+                                                  start.SelectorPath));
                 }
             }
         }
@@ -2854,7 +2882,7 @@
                                         "MatchQuality",
                                         MinValue,
                                         MaxValue);
-                throw new ValidationException(ValidationError.MatchQualityNotInRange, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.MatchQualityNotInRange, message, selectorPath));
             }
 
             if (!StandardValidator.IsInRangeOrNull(match.MatchSuitability, MinValue, MaxValue))
@@ -2866,7 +2894,7 @@
                                         "MatchSuitability",
                                         MinValue,
                                         MaxValue);
-                throw new ValidationException(ValidationError.MatchSuitabilityNotInRange, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.MatchSuitabilityNotInRange, message, selectorPath));
             }
 
             if (!StandardValidator.IsInRangeOrNull(match.Similarity, MinValue, MaxValue))
@@ -2878,7 +2906,7 @@
                                         "Similarity",
                                         MinValue,
                                         MaxValue);
-                throw new ValidationException(ValidationError.MatchSimilarityNotInRange, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.MatchSimilarityNotInRange, message, selectorPath));
             }
 
             sourceTags = StandardValidator.GetSelectableResourceStringContents(match.Source);
@@ -2895,7 +2923,7 @@
                 message = string.Format(
                                         Properties.Resources.StandardValidator_PropertyNotSpecified_Format,
                                         "SourceReference");
-                throw new ValidationException(ValidationError.MatchSourceRefNull, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.MatchSourceRefNull, message, selectorPath));
             }
             else
             {
@@ -2921,7 +2949,7 @@
                     message = string.Format(
                                             Properties.Resources.StandardValidator_NoMatchingSourceReference_Format,
                                             match.SourceReference);
-                    throw new ValidationException(ValidationError.MatchMissingSourceRef, message, selectorPath);
+                    ProcessException(new ValidationException(ValidationError.MatchMissingSourceRef, message, selectorPath));
                 }
             }
 
@@ -2932,10 +2960,10 @@
 
             if (match.Target == null)
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.MatchTargetNull,
                                               Properties.Resources.StandardValidator_TargetNotSpecified,
-                                              selectorPath);
+                                              selectorPath));
             }
             else
             {
@@ -2963,7 +2991,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_PropertyNotSpecified_Format, "Type");
-                throw new ValidationException(ValidationError.MetaTypeNull, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.MetaTypeNull, message, selectorPath));
             }
         }
 
@@ -2987,7 +3015,7 @@
                     string message;
 
                     message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "MetaGroup");
-                    throw new ValidationException(ValidationError.MetadataMissingGroup, message, selectorPath);
+                    ProcessException(new ValidationException(ValidationError.MetadataMissingGroup, message, selectorPath));
                 }
 
                 foreach (MetaGroup group in provider.Metadata.Groups)
@@ -3015,7 +3043,7 @@
                             string message;
 
                             message = string.Format(Properties.Resources.StandardValidator_DuplicateId_Format, group.Id);
-                            throw new ValidationException(ValidationError.MetadataIdDuplicate, message, selectorPath);
+                            ProcessException(new ValidationException(ValidationError.MetadataIdDuplicate, message, selectorPath));
                         }
 
                         set.Add(group.Id);
@@ -3047,7 +3075,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "MetaElement");
-                throw new ValidationException(ValidationError.MetaGroupMissingContainer, message, selectorPath);
+                ProcessException(new ValidationException(ValidationError.MetaGroupMissingContainer, message, selectorPath));
             }
 
             foreach (MetaElement container in group.Containers)
@@ -3081,7 +3109,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_PropertyNotNMTOKEN_Format, property);
-                throw new ValidationException(errorNumber, message, selectorPath, exceptionInfo);
+                ProcessException(new ValidationException(errorNumber, message, selectorPath, exceptionInfo));
             }
         }
 
@@ -3093,6 +3121,12 @@
         private void ValidateNotes(INoteContainer container)
         {
             Debug.Assert(container != null, "container should not be null.");
+
+            if (container is NoteContainer && !container.HasNotes)
+            {
+                var element = container as XliffElement;
+                ProcessException(new ValidationException(Properties.Resources.XliffReader_INoteContainerMissingNote_Format, (element == null) ? string.Empty : element.SelectableAncestor.SelectorPath));
+            }
 
             // Note.Id must be unique among siblings Notes.
             this.ValidateIds(container.Notes, false);
@@ -3113,7 +3147,7 @@
                                             Properties.Resources.StandardValidator_InvalidPriority_Format,
                                             MinPriority,
                                             MaxPriority);
-                    throw new ValidationException(ValidationError.NoteInvalidPriority, message, note.SelectorPath);
+                    ProcessException(new ValidationException(ValidationError.NoteInvalidPriority, message, note.SelectorPath));
                 }
 
                 this.ValidateFormatStyles(note, note.SelectorPath);
@@ -3129,6 +3163,12 @@
         {
             if (original != null)
             {
+                if (!original.HasData)
+                {
+                    var element = original as XliffElement;
+                    ProcessException(new ValidationException(Properties.Resources.XliffReader_OriginalDataMissingData, (element == null) ? string.Empty : element.SelectableAncestor.SelectorPath));
+                }
+
                 // Data.Id must be unique among all siblings.
                 this.ValidateIds(original.DataElements, false);
 
@@ -3166,10 +3206,10 @@
 
                 if ((data.ResourceItems.Count == 0) && (data.ResourceItemReferences.Count == 0))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.ResourceDataMissingItems,
                                                   Properties.Resources.StandardValidator_ResourceDataMissingItems,
-                                                  selectorPath);
+                                                  selectorPath));
                 }
 
                 childIds = this.ValidateResourceDataModule_ResourceItems(data.ResourceItems);
@@ -3206,10 +3246,10 @@
                         string message;
 
                         message = string.Format(Properties.Resources.StandardValidator_DuplicateId_Format, itemRef.Id);
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.ResourceItemRefIdDuplicate,
                                                       message,
-                                                      itemRef.SelectorPath);
+                                                      itemRef.SelectorPath));
                     }
 
                     childIds.Add(itemRef.Id);
@@ -3221,10 +3261,10 @@
                         message = string.Format(
                                         Properties.Resources.StandardValidator_ResourceItemRefInvalidReference_Format,
                                         (itemRef == null) ? "(null)" : itemRef.Reference);
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.ResourceItemRefInvalidReference,
                                                       message,
-                                                      itemRef.SelectorPath);
+                                                      itemRef.SelectorPath));
                     }
                 }
             }
@@ -3254,7 +3294,7 @@
                     message = string.Format(
                                             Properties.Resources.StandardValidator_HRefNotSpecifiedWhenEmpty_Format,
                                             subject);
-                    throw new ValidationException(ValidationError.ResourceItemReferenceBaseHRefAndSubject, message, selectorPath);
+                    ProcessException(new ValidationException(ValidationError.ResourceItemReferenceBaseHRefAndSubject, message, selectorPath));
                 }
 
                 // Language must be a BCP-47 value.
@@ -3290,7 +3330,7 @@
                     // Language must match the document SourceLanguage or TargetLanguage.
                     if (!Utilities.AreLanguagesEqual(reference.Language, language))
                     {
-                        throw new ValidationException(errorNumber2, message, selectorPath);
+                        ProcessException(new ValidationException(errorNumber2, message, selectorPath));
                     }
                 }
 
@@ -3314,7 +3354,7 @@
                         message = string.Format(
                                         Properties.Resources.StandardValidator_HRefNotSpecifiedWhenEmpty_Format,
                                         subject.ToString());
-                        throw new ValidationException(errorNumber, message, selectorPath);
+                        ProcessException(new ValidationException(errorNumber, message, selectorPath));
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(reference.HRef))
@@ -3335,7 +3375,7 @@
                     message = string.Format(
                                     Properties.Resources.StandardValidator_HRefNotSpecifiedWhenEmpty_Format,
                                     subject.ToString());
-                    throw new ValidationException(errorNumber, message, selectorPath);
+                    ProcessException(new ValidationException(errorNumber, message, selectorPath));
                 }
             }
         }
@@ -3359,10 +3399,10 @@
                 // At least one of Source, Target, or Reference must be specified.
                 if ((item.Source == null) && (item.Target == null) & (item.References.Count == 0))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.ResourceItemMissingChildren,
                                                   Properties.Resources.StandardValidator_ResourceItemMissingChildren,
-                                                  item.SelectorPath);
+                                                  item.SelectorPath));
                 }
 
                 if (item.Id != null)
@@ -3376,7 +3416,7 @@
                         string message;
 
                         message = string.Format(Properties.Resources.StandardValidator_DuplicateId_Format, item.Id);
-                        throw new ValidationException(ValidationError.ResourceItemIdDuplicate, message, item.SelectorPath);
+                        ProcessException(new ValidationException(ValidationError.ResourceItemIdDuplicate, message, item.SelectorPath));
                     }
 
                     itemIds.Add(item.Id);
@@ -3385,10 +3425,10 @@
                 // If Context is set to false, the Source must be present.
                 if (!item.Context && (item.Source == null))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                     ValidationError.ResourceItemSourceMissingWithNoContext,
                                     Properties.Resources.StandardValidator_ResourceItemSourceMissingWithNoContext,
-                                    item.SelectorPath);
+                                    item.SelectorPath));
                 }
 
                 // MimeType is required if target and source are empty.
@@ -3396,10 +3436,10 @@
                 isTargetEmpty = (item.Target == null) || !Utilities.HasExtensionAttributes(item.Target);
                 if (isSourceEmpty && isTargetEmpty && string.IsNullOrWhiteSpace(item.MimeType))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                     ValidationError.MimeTypeNotSpecified,
                                                     Properties.Resources.StandardValidator_MimeTypeRequired,
-                                                    item.SelectorPath);
+                                                    item.SelectorPath));
                 }
 
                 this.ValidateResourceDataModule_ResourceItemReferenceBase(
@@ -3416,10 +3456,10 @@
                     // HRef is required as IRI.
                     if (string.IsNullOrWhiteSpace(reference.HRef))
                     {
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                         ValidationError.ReferenceHRefNotSpecified,
                                         Properties.Resources.StandardValidator_HRefNotSpecifiedWhenRequired,
-                                        item.SelectorPath);
+                                        item.SelectorPath));
                     }
 
                     // Language must be a BCP-47 value.
@@ -3495,10 +3535,10 @@
                 message = string.Format(
                                         Properties.Resources.StandardValidator_InvalidResourceStringContent_Format,
                                         content.GetType().Name);
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.ResourceStringContentInvalid,
                                               message,
-                                              content.SelectableAncestor.SelectorPath);
+                                              content.SelectableAncestor.SelectorPath));
             }
         }
 
@@ -3580,10 +3620,10 @@
                 message = string.Format(
                             Properties.Resources.StandardValidator_SizeRestrictionAttributeWithSpanEndNotIsolated_Format,
                             "EquivalentStorage");
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                                 ValidationError.EquivalentStorageWithSpanEndNotIsolated,
                                                 message,
-                                                selectorPath);
+                                                selectorPath));
             }
 
             if (hasSizeInfo && isNotIsolated)
@@ -3595,10 +3635,10 @@
                 message = string.Format(
                             Properties.Resources.StandardValidator_SizeRestrictionAttributeWithSpanEndNotIsolated_Format,
                             "SizeInfo");
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                                 ValidationError.SizeInfoWithSpanEndNotIsolated,
                                                 message,
-                                                selectorPath);
+                                                selectorPath));
             }
 
             if (hasSizeRefInfo && isNotIsolated)
@@ -3610,10 +3650,10 @@
                 message = string.Format(
                             Properties.Resources.StandardValidator_SizeRestrictionAttributeWithSpanEndNotIsolated_Format,
                             "SizeInfoReference");
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.SizeInfoRefWithSpanEndNotIsolated,
                                               message,
-                                              selectorPath);
+                                              selectorPath));
             }
 
             if (hasSizeInfo && hasSizeRefInfo)
@@ -3622,10 +3662,10 @@
                 // be specified at the same time.
                 // Constraint 5.7.5.10: sizeInfoRef MUST NOT be specified if and only if sizeInfo is used. They MUST
                 // NOT be specified at the same time.
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.SameSizeInfoAndSizeInfoReferencePresence,
                                               Properties.Resources.StandardValidator_SameSizeInfoAndSizeInfoReferencePresence,
-                                              selectorPath);
+                                              selectorPath));
             }
         }
 
@@ -3643,10 +3683,10 @@
                 // Profile value is required.
                 if (string.IsNullOrWhiteSpace(data.Profile))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.ProfileDataProfileNull,
                                                   Properties.Resources.StandardValidator_ProfileNotSpecified,
-                                                  selectorPath);
+                                                  selectorPath));
                 }
             }
         }
@@ -3675,10 +3715,10 @@
                 hasText = (skeleton.NonTranslatableText != null) || ((IExtensible)skeleton).HasExtensions;
                 if (hasHRef == hasText)
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.SkeletonHasHRefAndTextOrNeither,
                                                   Properties.Resources.StandardValidator_HRefNotSpecified,
-                                                  skeleton.SelectableAncestor.SelectorPath);
+                                                  skeleton.SelectableAncestor.SelectorPath));
                 }
             }
         }
@@ -3695,38 +3735,41 @@
         {
             if (source == null)
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.SourceNull,
                                               Properties.Resources.StandardValidator_SourceNotSpecified,
-                                              selectorPath);
+                                              selectorPath));
             }
 
-            if (source.Language != null)
+            if (source != null)
             {
-                // Language must be a BCP-47 value.
-                this.ValidateBcp47Language(
-                                           source.Language,
-                                           true,
-                                           "Language",
-                                           ValidationError.SourceLangInvalid,
-                                           this.document.SelectorPath);
-
-                // The explicit or inherited value of lang must match the SourceLanguage of the document.
-                if (!Utilities.AreLanguagesEqual(source.Language, this.document.SourceLanguage))
+                if (source.Language != null)
                 {
-                    throw new ValidationException(
-                                                  ValidationError.SourceLangMismatch,
-                                                  Properties.Resources.StandardValidator_SourceLanguageMismatch,
-                                                  source.SelectableAncestor.SelectorPath);
-                }
-            }
+                    // Language must be a BCP-47 value.
+                    this.ValidateBcp47Language(
+                                               source.Language,
+                                               true,
+                                               "Language",
+                                               ValidationError.SourceLangInvalid,
+                                               this.document.SelectorPath);
 
-            this.ValidateResourceStringContentContainer(
-                                                        source,
-                                                        contentMap,
-                                                        null,
-                                                        this.markedSpanStartToFindSource,
-                                                        this.spanningCodeStartToFindSource);
+                    // The explicit or inherited value of lang must match the SourceLanguage of the document.
+                    if (!Utilities.AreLanguagesEqual(source.Language, this.document.SourceLanguage))
+                    {
+                        ProcessException(new ValidationException(
+                                                      ValidationError.SourceLangMismatch,
+                                                      Properties.Resources.StandardValidator_SourceLanguageMismatch,
+                                                      source.SelectableAncestor.SelectorPath));
+                    }
+                }
+
+                this.ValidateResourceStringContentContainer(
+                                                            source,
+                                                            contentMap,
+                                                            null,
+                                                            this.markedSpanStartToFindSource,
+                                                            this.spanningCodeStartToFindSource);
+            }            
         }
 
         /// <summary>
@@ -3777,10 +3820,10 @@
                                                     Properties.Resources.StandardValidator_StartTagOccursAfterEndTag_Format,
                                                     typeof(MarkedSpanStart).Name,
                                                     typeof(MarkedSpanEnd).Name);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.MarkedSpanStartTagOccursAfterEndTag,
                                                           message,
-                                                          item.Key);
+                                                          item.Key));
                         }
                     }
                     else
@@ -3791,7 +3834,7 @@
                                                 Properties.Resources.StandardValidator_ElementNotFound_Format,
                                                 typeof(MarkedSpanStart).Name,
                                                 item.Key);
-                        throw new ValidationException(ValidationError.TagStartRefInvalid, message, item.Key);
+                        ProcessException(new ValidationException(ValidationError.TagStartRefInvalid, message, item.Key));
                     }
                 }
             }
@@ -3846,16 +3889,16 @@
                                                     Properties.Resources.StandardValidator_StartTagOccursAfterEndTag_Format,
                                                     typeof(SpanningCodeStart).Name,
                                                     typeof(SpanningCodeEnd).Name);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                           ValidationError.SpanningCodeStartTagOccursAfterEndTag,
                                                           message,
-                                                          item.Key);
+                                                          item.Key));
                         }
 
                         // The value of CanCopy must be the same between the start and end.
                         if (start.CanCopy != item.Value.CanCopy)
                         {
-                            StandardValidator.ThrowSpanningCodeStartEndPropertyMismatchException(
+                            this.ThrowSpanningCodeStartEndPropertyMismatchException(
                                                                     "CanCopy",
                                                                     ValidationError.CodeBaseCanCopyMismatch,
                                                                     item.Key);
@@ -3864,7 +3907,7 @@
                         // The value of CanDelete must be the same between the start and end.
                         if (start.CanDelete != item.Value.CanDelete)
                         {
-                            StandardValidator.ThrowSpanningCodeStartEndPropertyMismatchException(
+                            this.ThrowSpanningCodeStartEndPropertyMismatchException(
                                                                     "CanDelete",
                                                                     ValidationError.CodeBaseCanDeleteMismatch,
                                                                     item.Key);
@@ -3875,16 +3918,16 @@
                         if (((start.CanReorder == CanReorderValue.Yes) && (item.Value.CanReorder != CanReorderValue.Yes)) ||
                             ((start.CanReorder != CanReorderValue.Yes) && (item.Value.CanReorder != CanReorderValue.No)))
                         {
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                     ValidationError.CodeBaseCanReorderMismatch,
                                                     Properties.Resources.StandardValidator_StartEndCanReorderMismatch,
-                                                    item.Key);
+                                                    item.Key));
                         }
 
                         // The value of CanOverlap must be the same between the start and end.
                         if (start.CanOverlap != item.Value.CanOverlap)
                         {
-                            StandardValidator.ThrowSpanningCodeStartEndPropertyMismatchException(
+                            this.ThrowSpanningCodeStartEndPropertyMismatchException(
                                                                     "CanOverlap",
                                                                     ValidationError.CodeBaseCanOverlapMismatch,
                                                                     item.Key);
@@ -3893,7 +3936,7 @@
                         // The value of Directionality must be the same between the start and end.
                         if (start.Directionality != item.Value.Directionality)
                         {
-                            StandardValidator.ThrowSpanningCodeStartEndPropertyMismatchException(
+                            this.ThrowSpanningCodeStartEndPropertyMismatchException(
                                                                     "Directionality",
                                                                     ValidationError.CodeBaseDirectionalityMismatch,
                                                                     item.Key);
@@ -3907,16 +3950,16 @@
                             message = string.Format(
                                         Properties.Resources.StandardValidator_SpanningCodeStartIslatedWithRef_Format,
                                         item.Value.SelectorPath);
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                     ValidationError.SpanningCodeStartIsolatedWithRef,
                                                     message,
-                                                    start.SelectorPath);
+                                                    start.SelectorPath));
                         }
 
                         // The value of SubType must be the same between the start and end.
                         if (start.SubType != item.Value.SubType)
                         {
-                            StandardValidator.ThrowSpanningCodeStartEndPropertyMismatchException(
+                            this.ThrowSpanningCodeStartEndPropertyMismatchException(
                                                                     "SubType",
                                                                     ValidationError.CodeBaseSubTypeMismatch,
                                                                     item.Key);
@@ -3925,7 +3968,7 @@
                         // The value of Type must be the same between the start and end.
                         if (start.Type != item.Value.Type)
                         {
-                            StandardValidator.ThrowSpanningCodeStartEndPropertyMismatchException(
+                            this.ThrowSpanningCodeStartEndPropertyMismatchException(
                                                                     "Type",
                                                                     ValidationError.CodeBaseTypeMismatch,
                                                                     item.Key);
@@ -3942,7 +3985,7 @@
                                                 Properties.Resources.StandardValidator_ElementNotFound_Format,
                                                 typeof(SpanningCodeStart).Name,
                                                 item.Key);
-                        throw new ValidationException(ValidationError.TagStartRefInvalid, message, item.Key);
+                        ProcessException(new ValidationException(ValidationError.TagStartRefInvalid, message, item.Key));
                     }
                 }
             }
@@ -3987,18 +4030,18 @@
                 // The explicit or inherited value of lang must match the TargetLanguage of the document.
                 if (checkLanguage && !Utilities.AreLanguagesEqual(target.Language, this.document.TargetLanguage))
                 {
-                    throw new ValidationException(
+                   ProcessException(new ValidationException(
                                                   ValidationError.TargetLangMismatch,
                                                   Properties.Resources.StandardValidator_TargetLanguageMismatch,
-                                                  target.SelectableAncestor.SelectorPath);
+                                                  target.SelectableAncestor.SelectorPath));
                 }
 
                 if ((target.Order <= 0) || (target.Order > maxOrder))
                 {
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.TargetOrderInvalid,
                                                   string.Format(Properties.Resources.StandardValidator_InvalidOrder_Format, maxOrder + 1),
-                                                  target.SelectableAncestor.SelectorPath);
+                                                  target.SelectableAncestor.SelectorPath));
                 }
 
                 this.ValidateResourceStringContentContainer(
@@ -4024,10 +4067,10 @@
             // Id must not be null.
             if (string.IsNullOrWhiteSpace(container.Id))
             {
-                throw new ValidationException(
+                ProcessException(new ValidationException(
                                               ValidationError.TranslationContainerIdNull,
                                               Properties.Resources.StandardValidator_IdNotSpecified,
-                                              container.SelectorPath);
+                                              container.SelectorPath));
             }
             else
             {
@@ -4099,7 +4142,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Resources");
-                throw new ValidationException(ValidationError.UnitMissingResource, message, unit.SelectorPath);
+                ProcessException(new ValidationException(ValidationError.UnitMissingResource, message, unit.SelectorPath));
             }
 
             markedSpanTypes = new[] { typeof(MarkedSpanStart), typeof(MarkedSpanEnd) };
@@ -4147,10 +4190,10 @@
                     message = string.Format(
                                             Properties.Resources.StandardValidator_DuplicateOrder_Format,
                                             orderNumber);
-                    throw new ValidationException(
+                    ProcessException(new ValidationException(
                                                   ValidationError.TargetOrderDuplicate,
                                                   message,
-                                                  container.SelectableAncestor.SelectorPath);
+                                                  container.SelectableAncestor.SelectorPath));
                 }
 
                 set.Add(orderNumber);
@@ -4183,7 +4226,7 @@
                 string message;
 
                 message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Segment");
-                throw new ValidationException(ValidationError.UnitMissingSegment, message, unit.SelectorPath);
+                ProcessException(new ValidationException(ValidationError.UnitMissingSegment, message, unit.SelectorPath));
             }
 
             if (unit.HasMatches)
@@ -4224,7 +4267,7 @@
                     string message;
 
                     message = string.Format(Properties.Resources.StandardValidator_NoElements_Format, "Rules");
-                    throw new ValidationException(ValidationError.ValidationMissingRules, message, selectorPath);
+                    ProcessException(new ValidationException(ValidationError.ValidationMissingRules, message, selectorPath));
                 }
 
                 foreach (Rule rule in validation.Rules)
@@ -4237,7 +4280,7 @@
                         string message;
 
                         message = string.Format(Properties.Resources.StandardValidator_ValueMustBeNOrGreater_Format, "Occurs", 1);
-                        throw new ValidationException(ValidationError.RuleInvalidOccurs, message, selectorPath);
+                        ProcessException(new ValidationException(ValidationError.RuleInvalidOccurs, message, selectorPath));
                     }
 
                     // The rule must have exactly one of IsPresent, IsNotPresent, StartsWith, EndsWith, or a custom rule
@@ -4251,10 +4294,10 @@
 
                     if (count != 1)
                     {
-                        throw new ValidationException(
+                        ProcessException(new ValidationException(
                                                       ValidationError.RuleInvalidDefinition,
                                                       Properties.Resources.StandardValidator_RuleDefinitionInvalid,
-                                                      selectorPath);
+                                                      selectorPath));
                     }
 
                     if (rule.ExistsInSource)
@@ -4267,10 +4310,10 @@
 
                         if (count != 1)
                         {
-                            throw new ValidationException(
+                            ProcessException(new ValidationException(
                                                       ValidationError.RuleInvalidExistsInSource,
                                                       Properties.Resources.StandardValidator_RuleExistsInSourceInvalid,
-                                                      selectorPath);
+                                                      selectorPath));
                         }
                     }
                 }

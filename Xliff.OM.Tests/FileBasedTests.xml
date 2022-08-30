@@ -105,13 +105,11 @@
     <Row path="Oasis_TestFiles\core\invalid\bad_NonEmptySkeletonWithHref.xlf"                                   expectedResult="ValidationError" errorNumber="20075" />
     <Row path="Oasis_TestFiles\core\invalid\bad_NonIsolatedEcWithoutStartRef.xlf"                               expectedResult="ValidationError" errorNumber="20081" />
     <Row path="Oasis_TestFiles\core\invalid\bad_NonIsolatedEcWithStartRef.xlf"                                  expectedResult="ValidationError" errorNumber="20157" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_NotesWithoutNote.xlf"                                           expectedResult="BadFormat" />
     <Row path="Oasis_TestFiles\core\invalid\bad_NoTrgLang.xlf"                                                  expectedResult="ValidationError" errorNumber="20026" />
     <Row path="Oasis_TestFiles\core\invalid\bad_NoTrgLangWithIgnorable.xlf"                                     expectedResult="ValidationError" errorNumber="20026" />
     <Row path="Oasis_TestFiles\core\invalid\bad_NoUnitOrGroupInFile.xlf"                                        expectedResult="ValidationError" errorNumber="20033" />
     <Row path="Oasis_TestFiles\core\invalid\bad_OrderNotUnique1.xlf"                                            expectedResult="ValidationError" errorNumber="20096" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_OrderNotUnique2.xlf"                                            expectedResult="ValidationError" errorNumber="20096" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_OriginalDataWithoutData.xlf"                                    expectedResult="BadFormat" />
+    <Row path="Oasis_TestFiles\core\invalid\bad_OrderNotUnique2.xlf"                                            expectedResult="ValidationError" errorNumber="20096" />    
     <Row path="Oasis_TestFiles\core\invalid\bad_PartIdNotUnique.xlf"                                            expectedResult="ValidationError" errorNumber="20029" />
     <Row path="Oasis_TestFiles\core\invalid\bad_RefAndValueInComment.xlf"                                       expectedResult="ValidationError" errorNumber="20047" />
     <Row path="Oasis_TestFiles\core\invalid\bad_SegmentIdNotUnique.xlf"                                         expectedResult="ValidationError" errorNumber="20029" />

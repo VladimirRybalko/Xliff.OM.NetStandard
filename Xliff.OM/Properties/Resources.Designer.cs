@@ -1094,5 +1094,17 @@ namespace Localization.Xliff.OM.Properties {
                 return ResourceManager.GetString("XmlWriter_InvalidXmlSpecifier_Format", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A valid XML prefix, namespace, and local name must be specified for the entity named &apos;{0}&apos;..
+        /// </summary>
+        internal static string StandardValidator_AggregatedException
+        {
+            get
+            {
+                return ResourceManager.GetString("StandardValidator_AggregatedException", resourceCulture);
+            }
+        }
+        
     }
 }

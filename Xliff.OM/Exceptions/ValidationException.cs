@@ -1,16 +1,12 @@
 ﻿namespace Localization.Xliff.OM.Exceptions
 {
     using System;
-    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Exception that indicates a document is invalid.
     /// </summary>
     /// <seealso cref="Exception"/>
-    [SuppressMessage("StyleCop.CSharp.Rules.Windows.Uex.UexRules",
-                     "UX0810::CustomExceptionClassesShouldHaveSerializableAttribute",
-                     Justification = "Portable Class Library doesn't support SerializableAttribute.")]
-    public sealed class ValidationException : Exception
+    public class ValidationException : Exception
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class with a specified

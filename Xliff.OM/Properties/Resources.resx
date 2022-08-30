@@ -349,10 +349,10 @@
     <value>The SpanningCodeStart cannot have Isolated set to true because it is referred to by a SpanningCodeEnd ({0}).</value>
   </data>
   <data name="XliffReader_INoteContainerMissingNote_Format" xml:space="preserve">
-    <value>The notes element within the element with selector path '{0}' must contain at least one note element.</value>
+    <value>The notes element must contain at least one note element.</value>
   </data>
   <data name="XliffReader_OriginalDataMissingData" xml:space="preserve">
-    <value>The originalData element within the element with selector path '{0}' must contain at least one data element.</value>
+    <value>The originalData element must contain at least one data element.</value>
   </data>
   <data name="XliffElement_ChildAlreadyExists_Format" xml:space="preserve">
     <value>"The {0} already contains a value for {1} and cannot store another instance.</value>
@@ -461,5 +461,8 @@
   </data>
   <data name="StandardValidator_OutputResolverFailed_Format" xml:space="preserve">
     <value>A value for {0} must be specified.</value>
+  </data>
+  <data name="StandardValidator_AggregatedException" xml:space="preserve">
+    <value>Document contains validation errors. See the 'InnerExceptions' property for details."</value>
   </data>
 </root>

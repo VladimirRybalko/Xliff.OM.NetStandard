@@ -11,6 +11,7 @@
     using Localization.Xliff.OM.Serialization;
     using IO = System.IO;
     using System.Text;
+    using Localization.Xliff.OM.Validators;
 
     /// <summary>
     /// This class contains the entry point to the application that demonstrates how to use the XLIFF 2.0 object model.
@@ -54,10 +55,6 @@
         /// <param name="args">Command line arguments passed to the application.</param>
         public static void Main(string[] args)
         {
-            var p = "C:/_work/space_test.xlf.txt";
-
-            SampleCode.ReadDocument(p);
-
             var path = IO.Path.GetTempFileName();
             try
             {
