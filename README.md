@@ -1,7 +1,7 @@
 # XLIFF 2.0 Object Model (NetStandard)
 [![NuGet](https://img.shields.io/badge/nuget-2.0.0-blue)](https://www.nuget.org/packages/Xliff.OM.NetStandard)
 
-This is an active and ongoing fork of the dead [XLIFF2-Object-Model](https://github.com/valdisiljuconoks/XLIFF2-Object-Model) project.
+This is an active and ongoing fork of the dead [XLIFF2-Object-Model](https://github.com/microsoft/XLIFF2-Object-Model) project.
 Despite of the original one, the current fork supports .Net Standard 2.0, strong signed assemblies, new features and all known bugfixes.
 
 The XLIFF 2.0 Object Model contains classes and methods for generating and manipulating XLIFF 2.0 documents as described in the [XLIFF 2.0
