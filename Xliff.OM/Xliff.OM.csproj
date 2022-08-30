@@ -17,10 +17,14 @@
     <RepositoryUrl>https://github.com/VladimirRybalko/Xliff.OM.NetStandard</RepositoryUrl>
     <PackageTags>XLIFF parsing localization xliff20</PackageTags>
     <PackageReleaseNotes>- Strong signed assemblies
+- Huge Validation enhancement. Now, you can get all validation exceptions rather than the first one only. 
 - Fixed an issue with Note-&gt;priority tag and its validation
-- Custom namespaces are allowed for all known elements</PackageReleaseNotes>
+- Custom namespaces are allowed for all known elements
+- xml:lang is allowed for all extensible elements.</PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <BaseOutputPath>$(SolutionDir)\bin\</BaseOutputPath>
+    <Company />
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\LICENSE">
