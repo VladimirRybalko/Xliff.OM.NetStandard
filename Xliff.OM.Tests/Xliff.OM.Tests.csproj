@@ -544,24 +544,6 @@
     <None Include="Oasis_TestFiles\core\invalid\bad_InvalidValidation.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangInheritedFromFile.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangInheritedFromGroup.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangInheritedFromUnit.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangOnFile.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangOnGroup.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangOnUnit.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="Oasis_TestFiles\core\invalid\bad_IsolatedEcWithId.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -658,9 +640,6 @@
     <None Include="Oasis_TestFiles\core\invalid\bad_UnknownDataRefValue.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Oasis_TestFiles\core\invalid\bad_WrongLangOnTarget.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="Oasis_TestFiles\core\invalid\bad_WrongReordering1.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -752,6 +731,15 @@
     <None Include="Oasis_TestFiles\core\valid\withXmlSpace.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Oasis_TestFiles\core\valid\XmlLangOnFile.xlf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Oasis_TestFiles\core\valid\XmlLangOnGroup.xlf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Oasis_TestFiles\core\valid\XmlLangOnUnit.xlf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Oasis_TestFiles\modules\invalid\Bad-ctr-property-not-legit-category.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -801,9 +789,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Oasis_TestFiles\modules\invalid\Bad-mtc_id-not-nmtoken.xlf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Oasis_TestFiles\modules\invalid\Bad-mtc_match-has-xml_lang.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Oasis_TestFiles\modules\invalid\Bad-mtc_match-ID-not-unique.xlf">
@@ -914,6 +899,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Oasis_TestFiles\modules\valid\Good-mtc_match-has-no-xml_lang.xlf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Oasis_TestFiles\modules\valid\Good-mtc_match-has-xml_lang.xlf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Oasis_TestFiles\modules\valid\Good-mtc_match-ID-unique.xlf">

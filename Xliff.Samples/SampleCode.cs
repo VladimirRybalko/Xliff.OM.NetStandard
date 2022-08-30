@@ -23,8 +23,10 @@
         public static void BlankDocument()
         {
             XliffDocument document;
+
             document = new XliffDocument("en-us");
         }
+
 
         /// <summary>
         /// Demonstrates how to disable validation when writing an XLIFF document.
@@ -52,6 +54,10 @@
         /// <param name="args">Command line arguments passed to the application.</param>
         public static void Main(string[] args)
         {
+            var p = "C:/_work/space_test.xlf.txt";
+
+            SampleCode.ReadDocument(p);
+
             var path = IO.Path.GetTempFileName();
             try
             {

@@ -54,5 +54,11 @@
         /// The value of the xml namespace.
         /// </summary>
         public const string Xml = "http://www.w3.org/XML/1998/namespace";
+
+
+        /// <summary>
+        /// The value of the lang namespace
+        /// </summary>
+        internal const string Lang = "lang";
     }
 }

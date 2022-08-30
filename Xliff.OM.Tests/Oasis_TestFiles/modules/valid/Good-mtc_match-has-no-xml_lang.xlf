@@ -21,10 +21,7 @@ xmrk:doctype_dec="concept PUBLIC '-//OASIS//DTD DITA Concept//EN' 'concept.dtd'"
 >
 
          <mtc:matches>
-            <mtc:match id="mtc1" ref="#m1"> <!-- 5.1.5.3 match constraint 
-
-    xml:lang MUST NOT be set on the match element.
-	--><!-- valid, add xml:lang to break constraint -->
+            <mtc:match id="mtc1" ref="#m1"> 
                <source>He is my friend1.</source>
                <target>Il est mon ami.</target>
             </mtc:match>

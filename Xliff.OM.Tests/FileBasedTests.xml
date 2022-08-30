@@ -94,14 +94,8 @@
     <Row path="Oasis_TestFiles\core\invalid\bad_InvalidTranslateInSegment.xlf"                                  expectedResult="NotSupported" />
     <Row path="Oasis_TestFiles\core\invalid\bad_InvalidTypeSubTypeValues.xlf"                                   expectedResult="ValidationError" errorNumber="20015" />
     <Row path="Oasis_TestFiles\core\invalid\bad_InvalidTypeValue.xlf"                                           expectedResult="NotSupported" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidValidation.xlf"                                          expectedResult="BadFormat" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangInheritedFromFile.xlf"                            expectedResult="NotSupported" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangInheritedFromGroup.xlf"                           expectedResult="NotSupported" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangInheritedFromUnit.xlf"                            expectedResult="NotSupported" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangOnFile.xlf"                                       expectedResult="NotSupported" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangOnGroup.xlf"                                      expectedResult="NotSupported" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidXmlLangOnUnit.xlf"                                       expectedResult="NotSupported" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_IsolatedEcWithId.xlf"                                           expectedResult="ValidationError" errorNumber="20080" />
+    <Row path="Oasis_TestFiles\core\invalid\bad_InvalidValidation.xlf"                                          expectedResult="BadFormat" />   
+    <Row path="Oasis_TestFiles\core\invalid\bad_IsolatedEcWithId.xlf"                                             expectedResult="ValidationError" errorNumber="20080" />
     <Row path="Oasis_TestFiles\core\invalid\bad_MissingIsolatedOnEc.xlf"                                        expectedResult="ValidationError" errorNumber="20081" />
     <Row path="Oasis_TestFiles\core\invalid\bad_MissingIsolatedOnSc.xlf"                                        expectedResult="ValidationError" errorNumber="20106" />
     <Row path="Oasis_TestFiles\core\invalid\bad_MissingNonRemovable1.xlf"                                       expectedResult="ValidationError" errorNumber="20016" />
@@ -132,8 +126,7 @@
     <Row path="Oasis_TestFiles\core\invalid\bad_UnitWithoutSegment.xlf"                                         expectedResult="ValidationError" errorNumber="20102" />
     <Row path="Oasis_TestFiles\core\invalid\bad_UnknownDataRefEndValue.xlf"                                     expectedResult="ValidationError" errorNumber="20084" />
     <Row path="Oasis_TestFiles\core\invalid\bad_UnknownDataRefStartValue.xlf"                                   expectedResult="ValidationError" errorNumber="20085" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_UnknownDataRefValue.xlf"                                        expectedResult="ValidationError" errorNumber="20092" />
-    <Row path="Oasis_TestFiles\core\invalid\bad_WrongLangOnTarget.xlf"                                          expectedResult="NotSupported" />
+    <Row path="Oasis_TestFiles\core\invalid\bad_UnknownDataRefValue.xlf"                                        expectedResult="ValidationError" errorNumber="20092" />   
     <Row path="Oasis_TestFiles\core\invalid\bad_WrongReordering1.xlf"                                           expectedResult="ValidationError" errorNumber="20011" />
     <Row path="Oasis_TestFiles\core\invalid\bad_WrongReordering2.xlf"                                           expectedResult="ValidationError" errorNumber="20114" />
     <Row path="Oasis_TestFiles\core\invalid\bad_WrongSourceLang.xlf"                                            expectedResult="ValidationError" errorNumber="20077" />
@@ -162,8 +155,11 @@
     <Row path="Oasis_TestFiles\core\valid\withReorderedCodes.xlf"                                               expectedResult="Success" />
     <Row path="Oasis_TestFiles\core\valid\withTBXExtension.xlf"                                                 expectedResult="Success" />
     <Row path="Oasis_TestFiles\core\valid\withValidation.xlf"                                                   expectedResult="Success" />
-    <Row path="Oasis_TestFiles\core\valid\withXmlLang.xlf"                                                      expectedResult="NotSupported" notes="not supported because xml attributes are not allowed unless explicitly stated" />
+    <Row path="Oasis_TestFiles\core\valid\withXmlLang.xlf"                                                      expectedResult="Success" notes="xml lang are allowed for extensible elements" />
     <Row path="Oasis_TestFiles\core\valid\withXmlSpace.xlf"                                                     expectedResult="Success" />
+    <Row path="Oasis_TestFiles\core\valid\XmlLangOnFile.xlf"                                                    expectedResult="Success" />
+    <Row path="Oasis_TestFiles\core\valid\XmlLangOnGroup.xlf"                                                   expectedResult="Success" />
+    <Row path="Oasis_TestFiles\core\valid\XmlLangOnUnit.xlf"                                                    expectedResult="Success" />
     <Row path="Oasis_TestFiles\modules\invalid\Bad-ctr-property-not-legit-category.xlf"                         expectedResult="Success" notes="success because change tracking module contraints are not validated" />
     <Row path="Oasis_TestFiles\modules\invalid\Bad-ctr_appliesTo-not-using-ref-to-resolvableID.xlf"             expectedResult="Success" notes="success because change tracking module contraints are not validated" />
     <Row path="Oasis_TestFiles\modules\invalid\Bad-ctr_property-not-content-or-valid-attribute-ref.xlf"         expectedResult="Success" notes="success because change tracking module contraints are not validated" />
@@ -180,8 +176,7 @@
     <Row path="Oasis_TestFiles\modules\invalid\Bad-mda_metaGroup-id-not-unique.xlf"                             expectedResult="ValidationError" errorNumber="20061" />
     <Row path="Oasis_TestFiles\modules\invalid\Bad-mda_metaGroup-invalid-appliesTo.xlf"                         expectedResult="NotSupported" />
     <Row path="Oasis_TestFiles\modules\invalid\Bad-mda_missing-metaGroup.xlf"                                   expectedResult="InvalidOperation"  />
-    <Row path="Oasis_TestFiles\modules\invalid\Bad-mtc_id-not-nmtoken.xlf"                                      expectedResult="ValidationError" errorNumber="20054" />
-    <Row path="Oasis_TestFiles\modules\invalid\Bad-mtc_match-has-xml_lang.xlf"                                  expectedResult="NotSupported" />
+    <Row path="Oasis_TestFiles\modules\invalid\Bad-mtc_id-not-nmtoken.xlf"                                      expectedResult="ValidationError" errorNumber="20054" />    
     <Row path="Oasis_TestFiles\modules\invalid\Bad-mtc_match-ID-not-unique.xlf"                                 expectedResult="ValidationError" errorNumber="20029" />
     <Row path="Oasis_TestFiles\modules\invalid\Bad-mtc_subType-w-o-type-match.xlf"                              expectedResult="BadFormat"/>
     <Row path="Oasis_TestFiles\modules\invalid\Bad-mtc_type-value-not-in-list.xlf"                              expectedResult="NotSupported" />
@@ -238,4 +233,5 @@
     <Row path="Oasis_TestFiles\modules\valid\Good-val_existsInSourcePatternOnRule.xlf"                          expectedResult="Success" />
     <Row path="Oasis_TestFiles\modules\valid\Good-val_extension-rule.xlf"                                       expectedResult="Success" />
     <Row path="Oasis_TestFiles\modules\valid\Goodslr_sizeRestriction-isolated.xlf"                              expectedResult="Success" />
+    <Row path="Oasis_TestFiles\modules\valid\Good-mtc_match-has-xml_lang.xlf"                                   expectedResult="Success" />
 </TestData>

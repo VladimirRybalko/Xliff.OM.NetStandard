@@ -929,6 +929,11 @@
                 // Property saved.
                 result = SetAttributeResult.Success;
             }
+            else if (name.LocalName == NamespaceValues.Lang)
+            {
+                // xml:lang can be stored as extension if belongs to the extensible types.
+                result = SetAttributeResult.PossibleExtension;
+            }
             else if ((name.Prefix == NamespacePrefixes.Xml) || Utilities.IsModuleNamespace(name.Namespace))
             {
                 // xml:xx is not an extension.
